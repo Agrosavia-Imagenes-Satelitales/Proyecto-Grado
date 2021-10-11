@@ -4,8 +4,8 @@ Created on Thu Aug 12 17:17:02 2021
 
 @author: edwin
 
-Este script descarga de la tabla de propiedades fisicoquimicas con lat,lon, NVI, Bandas de la imagen multiesprectral y
- guarda los valores de banda en una tabla 
+Este script descarga de la tabla de propiedades fisicoquimicas con lat,lon, el  NDVI, Bandas de la imagen multiesprectral solicitando 
+los datos a Sentinel Hub y guarda los valores de banda en una tabla
 """
 #librerias
 import cv2
@@ -20,6 +20,10 @@ import copy
 import geopy                 # librerias para el calculo de distancias geodesicas y transformaciones
 import geopy.distance
 from sentinelhub import WebFeatureService, BBox, CRS, DataCollection, SHConfig   # libreria para el acceso a SH
+# Librerias para manejo de fechas
+from datetime import timedelta, date
+from datetime import datetime
+
 
 #-----------CONFIGURACION DE MI CUENTA DE SENTINEL HUB-------
 config = SHConfig() 
@@ -35,54 +39,71 @@ from sentinelhub import MimeType, CRS, BBox, SentinelHubRequest, SentinelHubDown
     DataCollection, bbox_to_dimensions, DownloadRequest
 import python_utils
 
-
 # direccion de la tabla de etiquetas
-ruta = "E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Python Imagenes/TablasLabels/sand_labels.csv"
+path = "E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Python Imagenes/LUCAS/BEL_Georeferenced_Properties.xlsx"
 
-labels = pd.read_csv(ruta, delimiter=',' , index_col=0)     # cargo la tabla de etiquetas
-labels_copy = copy.deepcopy(labels)         #genero una copia real de los datos
+dataset_original = pd.read_excel(path, sheet_name= 2)   #cargo los datos
+dataset = copy.deepcopy(dataset_original)           #genero una copia real de los datos
 
-labels_statistics = labels_copy.describe()
+# genero una ventana de tiempo de 34 dias para tener certeza de que Sentinel 2 tomo al menos una imagen.
+dataset['Date Before'] = dataset['Date'] - timedelta(days=17)    # sumando 17 dias a la fecha 
+dataset['Date After'] = dataset['Date'] + timedelta(days=17)  # restando 17 dias a la fecha 
+# Convierto las fechas de datetime a string
+dataset['Date Before'] = dataset['Date Before'].dt.strftime("%Y-%m-%d")  
+dataset['Date After'] = dataset['Date After'].dt.strftime("%Y-%m-%d")
 
-def getImage(latitud, longitud):
-    """
-    solicita una imagen multiespectral a sentinelHub, recibe como parametros latitud, longitud
+def getImage(lat, long, dateA, dateB):
     
+    """
+    Funcion que solicita la imagen multiespectral de Sentinel Hub del satelite Sentinel-2 solo 
+    si se encuentra una imagen que cumpla con los parametros especificados
+
     Parameters
     ----------
-        latitud, longitud
+    lat : float64
+        Latitud de la muestra de suelo.
+    long : float 64
+        Longitud de la muestra de suelo.
+    dateA : strftime
+        Fecha de la toma de la muestra - x dias.
+    dateB : strftime
+        Fecha de la toma de la muestra + x dias.
 
     Returns
     -------
-        Imagen en numpy array
+    TIFF image
+        Imagen multiespectral con todas las 13 bandas del sentinel 2.
 
     """
+    dateBefore = dateA
+    dateAfter = dateB
+    print('El Rango De Fechas Es :', dateBefore,'|', dateAfter)
     # UN PIXEL
     #------------ Coordenadas del sitio en wgs84 (4 puntos coordenados)------------
     # cero grados es el Norte
-    calculo_Bbox = [latitud, longitud] # Genero una caja contenedora de x Km^2 para la imagen satelital 
-    start = geopy.Point(calculo_Bbox)   # latitud , longitud
-    d = geopy.distance.GeodesicDistance(kilometers = 0.010)   
+    calculate_Bbox = [lat, long] # Genero una caja contenedora de x Km^2 para la imagen satelital 
+    start = geopy.Point(calculate_Bbox)   # latitud , longitud del punto de inicio 
+    d = geopy.distance.GeodesicDistance(kilometers = 0.010)   # genero la distancia a recorren en kilometros
     endPoint1 = d.destination(point=start, bearing = 180)     # distancia que se recorre hacia abajo
     endPoint1 = d.destination(point=endPoint1, bearing = 270)     # distancia que se recorre hacia izda
-    latitud1 = endPoint1.latitude        # Lat y Long de esquina inferior Izda
-    longitud1 = endPoint1.longitude
-    print('Lat:',latitud1,'-Long:', longitud1) 
+    lat1 = endPoint1.latitude        # Lat y Long de esquina inferior Izda
+    long1 = endPoint1.longitude
+    print('Lat:',lat1,'-Long:', long1) 
     print(endPoint1)
     
-    start = geopy.Point(calculo_Bbox)   # latitud , longitud
-    d = geopy.distance.GeodesicDistance(kilometers = 0.010)   
+    start = geopy.Point(calculate_Bbox)   # latitud , longitud del punto de inicio 
+    d = geopy.distance.GeodesicDistance(kilometers = 0.010) # genero la distancia a recorren en kilometros 
     endPoint2 = d.destination(point=start, bearing = 0)     # distancia que se recorre hacia arriba
     endPoint2 = d.destination(point=endPoint2, bearing = 90)     # distancia que se recorre hacia Derecha
-    latitud2 = endPoint2.latitude        # Lat y Long de esquina superior derecha
-    longitud2 = endPoint2.longitude
-    print('Lat:',latitud2,'-Long:', longitud2)
+    lat2 = endPoint2.latitude        # Lat y Long de esquina superior derecha
+    long2 = endPoint2.longitude
+    print('Lat:',lat2,'-Long:', long2)
     print(endPoint2)
     
-    par_coordenadas = [longitud1,latitud1,longitud2,latitud2] # Cuadro delimitador (coordenadas)
+    coordenate_pair = [long1,lat1,long2,lat2] # Cuadro delimitador (coordenadas)
     resolution = 15   # minima resolucion espacial es de 15 metros
-    BBox_coordenadas = BBox(bbox=par_coordenadas, crs=CRS.WGS84) # caja de coordenadas
-    BBox_size = bbox_to_dimensions(BBox_coordenadas, resolution=resolution) # resolucion de la imagen
+    BBox_coordinates = BBox(bbox=coordenate_pair, crs=CRS.WGS84) # caja de coordenadas
+    BBox_size = bbox_to_dimensions(BBox_coordinates, resolution=resolution) # resolucion de la imagen
     
     print(f'Image shape at {resolution} m resolution: {BBox_size} pixels') 
     
@@ -129,10 +150,10 @@ def getImage(latitud, longitud):
         evalscript=evalscript_all_bands,
         input_data=[SentinelHubRequest.input_data(
                 data_collection=DataCollection.SENTINEL2_L1C,
-                time_interval=('2015-06-01', '2016-06-30'),
+                time_interval=( dateBefore, dateAfter),
                 mosaicking_order='leastCC')],
         responses=[SentinelHubRequest.output_response('default', MimeType.TIFF)],
-        bbox=BBox_coordenadas,
+        bbox=BBox_coordinates,
         size=BBox_size,
         config=config
     )
@@ -141,11 +162,11 @@ def getImage(latitud, longitud):
     #all_bands_img = request_all_bands.get_data(save_data=True)  # Guardado de la imagen Multiespectral
     all_bands_img = request_all_bands.get_data()  # NO Guardado de la imagen Multiespectral
     
-    print(f'The output directory has been created and a tiff file with all 13 bands was saved into ' \
-          'the following structure:\n')
+    #print(f'The output directory has been created and a tiff file with all 13 bands was saved into ' \
+    #      'the following structure:\n')
     return (all_bands_img)
 
-def sueloDesnudoNDVI(image):   
+def BareSoilNDVI(image):   
     '''
     para que se considere suelo desnudo el NDVI debe estar entre 0 y 0.2
 
@@ -159,14 +180,14 @@ def sueloDesnudoNDVI(image):
        Retorna TRUE si el NDVI esta ENTRE 0 Y 0.1, FALSE si es DIFERENTE a 0.1
 
     '''
-    banda4 = image[0,0,3]
-    print('El valor de la banda 4 es:', banda4, 'tipo de dato:', type(banda4))
+    Band4 = image[0,0,3]
+    print('El valor de la banda 4 es:', Band4, 'tipo de dato:', type(Band4))
     
 
-    banda8= image[0,0,7]
-    print('El valor de la banda 8 es:', banda8)
+    Band8= image[0,0,7]
+    print('El valor de la banda 8 es:', Band8)
 
-    ndvi = (banda8.astype(float) - banda4.astype(float)) / (banda8 + banda4) #Formula de índice de vegetación de diferencia normalizada.
+    ndvi = (Band8.astype(float) - Band4.astype(float)) / (Band8 + Band4) #Formula de índice de vegetación de diferencia normalizada.
     print('El NDVI es:', ndvi) 
     
     if 0 < ndvi < 0.2:
@@ -175,30 +196,30 @@ def sueloDesnudoNDVI(image):
         a = False
     return a, ndvi
     
-    
-carb_locations = copy.deepcopy(labels_copy)
-#carb_locations.drop(['Carb [%]'], axis=1, inplace=True)
-
 #creacón de la las columnas de la tabla
-#tabla_features_labels = pd.DataFrame(columns=['lat','long','NDVI','B1','B2','B3','B4','B5','B6','B7','B8','B9','B10','B11','B12','B13','Sand [%]'])
+dataset_images = pd.DataFrame(columns=['Point_ID', 'Clay', 'Sand', 'Silt', 'pH(CaCl2)', 'pH(H2O)', 'EC', 'OC', 'CaCO3',
+                                              'P', 'N', 'K', 'Latitude', 'Longitude', 'Date', 'Date Before', 'Date After', 
+                                              'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'B12', 'B13', 'NDVI'])
 
 #Linea para descarga interrumpida, Primero leo la tabla y luego sigo agregando valores desde el punto de interrupcion
-tabla_features_labels = pd.read_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Python Imagenes/Bases Datos Imagenes/Features_Labels_sand.csv',index_col=0)
+#dataset_images = pd.read_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Python Imagenes/Bases Datos Imagenes/Features_Labels_sand.csv',index_col=0)
 
 #NOTA: Sila descarga es interumpida continuar la descarga desde una muestra despues de la ultima registrada cambiando iloc
 
 #-------------------------------------V Numero de muestra
-for index, row in carb_locations.iloc[889:].iterrows():
+for index, row in dataset.iloc[0:].iterrows():
     long = row['Longitude']
     lat = row['Latitude']
-    #print(row['Latitude'], row['Longitude'])
+    dateA = row['Date Before']
+    dateB = row['Date After']
+    #print(row['Latitude'], row['Longitude'])   
     #getImage(lat, long)
-    image = getImage(lat, long)    # getimage genera una lista que dentro tiene un numpy array
+    image = getImage(lat, long, dateA, dateB )    # getimage genera una lista que dentro tiene un numpy array
     image1 = image[0]              # saco de la lista el numpy y me queda un array of uint16
     print('IMAGEN ES:' ,type(image1))
     print(image1.shape)
     print(image1[0,0,0])
-    a, ndvi = sueloDesnudoNDVI(image1) 
+    a, ndvi = BareSoilNDVI(image1) 
     print('El suelo esta desnudo', a)
     
     if a == True:
@@ -216,14 +237,18 @@ for index, row in carb_locations.iloc[889:].iterrows():
         B10 = image1[0,0,10]
         B11 = image1[0,0,11]
         B12= image1[0,0,12]
-        label_col = row['Sand [%]']
+        
         # Guardo los valores de las bandas en 
-        tabla_features_labels = tabla_features_labels.append({'lat':lat,'long':long,'NDVI':ndvi,'B1':B1, 'B2':B2, 'B3':B3, 'B4':B4,\
-                                                              'B5':B5,'B6':B6,'B7':B7,'B8':B8,'B8A':B8A,'B9':B9,'B10':B10,\
-                                                              'B11':B11,'B12':B12,'Sand [%]':label_col}, ignore_index=True)
+        dataset_images = dataset_images.append(
+            {'Point_ID': row['Point_ID'], 'Clay':row['Clay'], 'Sand':row['Sand'], 'Silt':row['Silt'], 'pH(CaCl2)':row['pH(CaCl2)'], 
+             'pH(H2O)':row['pH(H2O)'], 'EC':row['EC'], 'OC':row['OC'], 'CaCO3':row['CaCO3'], 'P':row['P'], 'N':row['N'], 'K':row['K'], 
+             'Latitude':row['Latitude'], 'Longitude':row['Longitude'], 'Date':row['Date'], 'Date Before':row['Date Before'],
+             'Date After':row['Date After'], 'B1':B1, 'B2':B2, 'B3':B3, 'B4':B4,'B5':B5,'B6':B6,'B7':B7,'B8':B8,'B9':B8A,'B10':B9,'B11':B10,
+             'B12':B11,'B13':B12, 'NDVI':ndvi}, ignore_index=True)
+
     print('el numerdo de muestra es:',index)
     #guardo la tabla actualizada
-    tabla_features_labels.to_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Python Imagenes/Bases Datos Imagenes/Features_Labels_sand.csv')
+    #dataset_images.to_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Python Imagenes/Bases Datos Imagenes/BEL_LUCAS_img_Dataset.csv')
     
    
  
