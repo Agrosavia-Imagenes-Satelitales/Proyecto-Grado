@@ -248,7 +248,7 @@ for index, row in dataset.iloc[0:].iterrows():
 
     print('el numerdo de muestra es:',index)
     #guardo la tabla actualizada
-    #dataset_images.to_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Python Imagenes/Bases Datos Imagenes/BEL_LUCAS_img_Dataset.csv')
+    dataset_images.to_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/Bases Datos Imagenes/BEL_Img_Dataset.csv')
     
    
  
