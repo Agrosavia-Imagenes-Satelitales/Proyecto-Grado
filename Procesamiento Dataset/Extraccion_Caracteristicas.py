@@ -107,6 +107,47 @@ for n in range(1,13,1):
     dataset_images.insert(52+n,'B'+str(n)+'cr', continuous_removal['B'+str(n)+'cr'])
 
 
+# -- INDICES DE VEGETACION
+
+indices = pd.DataFrame(columns=['GNDVI','EVI','SAVI','BSI','ARVI'])
+
+for index, row in dataset_images.iterrows():
+    bands = dataset_images.iloc[index, 17:30]
+    band1 = bands[0]
+    band2 = bands[1]
+    band3 = bands[2]
+    band4 = bands[3]
+    band5 = bands[4]
+    band6 = bands[5]
+    band7 = bands[6]
+    band8 = bands[7]
+    band8a = bands[8]
+    band9 = bands[9]
+    band10 = bands[10]
+    band11 = bands[11]
+    band12 = bands[12]
+    
+    
+    GNDVI = (band8-band3)/(band8+band3)
+    EVI = 2.5*((band8-band4)/((band8+(6*band4)-(7.5*band2)+1)))
+    SAVI = 1.428*((band8-band4)/(band8+band4+0.428))
+    BSI = ((band11+band4)-(band8+band2))/((band11+band4)+(band8+band2))
+    ARVI = (band8-(2*band4)+band2)/(band8+(2*band4)+band2)
+    indices_list = [GNDVI, EVI, SAVI, BSI, ARVI]
+
+    indices.loc[index] = indices_list
+    
+frames = [dataset_images, indices]
+
+dataset_imagesFE = pd.concat(frames, axis=1)         # extracted features dataset
+
+'''
+dataset_images.insert(51 , 'GNDVI', indices['GNDVI'] )
+dataset_images.insert(52 , 'EVI', indices['EVI'] )
+dataset_images.insert(53 , 'SAVI', indices['SAVI'] )
+dataset_images.insert(54 , 'BSI', indices['BSI'] )
+dataset_images.insert(55 , 'ARVI', indices['ARVI'] )
+'''
 # HABILITAR Linea para guardado de los datos
 #dataset_images.to_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/Bases Datos Imagenes/BEL_Extracted_Features.csv')
 
