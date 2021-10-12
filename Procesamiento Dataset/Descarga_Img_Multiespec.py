@@ -40,9 +40,9 @@ from sentinelhub import MimeType, CRS, BBox, SentinelHubRequest, SentinelHubDown
 import python_utils
 
 # direccion de la tabla de etiquetas
-path = "E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Python Imagenes/LUCAS/BEL_Georeferenced_Properties.xlsx"
+path = "E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/TablasLabels/LUCAS/France_Georeferenced_Properties.xlsx"
 
-dataset_original = pd.read_excel(path, sheet_name= 2)   #cargo los datos
+dataset_original = pd.read_excel(path, sheet_name= 1)   #cargo los datos
 dataset = copy.deepcopy(dataset_original)           #genero una copia real de los datos
 
 # genero una ventana de tiempo de 34 dias para tener certeza de que Sentinel 2 tomo al menos una imagen.
@@ -248,7 +248,7 @@ for index, row in dataset.iloc[0:].iterrows():
 
     print('el numerdo de muestra es:',index)
     #guardo la tabla actualizada
-    dataset_images.to_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/Bases Datos Imagenes/BEL_Img_Dataset.csv')
+    dataset_images.to_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/TablasLabels/LUCAS/FRA_Img_Dataset.csv')
     
    
  

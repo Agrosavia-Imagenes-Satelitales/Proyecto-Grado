@@ -38,7 +38,7 @@ def derivate(y1, y2, l1, l2):
     slope = (y2 - y1)/(l2 - l1)
     return slope
 
-dataset_images_original = pd.read_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/Bases Datos Imagenes/ES_Img_Dataset.csv',index_col=0)
+dataset_images_original = pd.read_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/Bases Datos Imagenes/LUCAS/France_Img_Dataset.csv',index_col=0)
 dataset_images = copy.deepcopy(dataset_images_original)  
 
 # Llongitudes de onda de la banda central de sentinel 2A
@@ -138,17 +138,10 @@ for index, row in dataset_images.iterrows():
     indices.loc[index] = indices_list
     
 frames = [dataset_images, indices]
-
+# concatena las tablas dataset_images e indices
 dataset_imagesFE = pd.concat(frames, axis=1)         # extracted features dataset
 
-'''
-dataset_images.insert(51 , 'GNDVI', indices['GNDVI'] )
-dataset_images.insert(52 , 'EVI', indices['EVI'] )
-dataset_images.insert(53 , 'SAVI', indices['SAVI'] )
-dataset_images.insert(54 , 'BSI', indices['BSI'] )
-dataset_images.insert(55 , 'ARVI', indices['ARVI'] )
-'''
 # HABILITAR Linea para guardado de los datos
-#dataset_images.to_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/Bases Datos Imagenes/BEL_Extracted_Features.csv')
+dataset_images.to_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/Bases Datos Imagenes/LUCAS/France_Extracted_Features.csv')
 
 
