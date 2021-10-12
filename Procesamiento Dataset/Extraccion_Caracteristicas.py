@@ -38,7 +38,7 @@ def derivate(y1, y2, l1, l2):
     slope = (y2 - y1)/(l2 - l1)
     return slope
 
-dataset_images_original = pd.read_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/Bases Datos Imagenes/LUCAS/France_Img_Dataset.csv',index_col=0)
+dataset_images_original = pd.read_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/Bases Datos Imagenes/LUCAS/Sweden_Img_Dataset.csv',index_col=0)
 dataset_images = copy.deepcopy(dataset_images_original)  
 
 # Llongitudes de onda de la banda central de sentinel 2A
@@ -142,6 +142,6 @@ frames = [dataset_images, indices]
 dataset_imagesFE = pd.concat(frames, axis=1)         # extracted features dataset
 
 # HABILITAR Linea para guardado de los datos
-dataset_images.to_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/Bases Datos Imagenes/LUCAS/France_Extracted_Features.csv')
+dataset_imagesFE.to_csv('E:/User/Escritorio/SEMESTRE 9/PROY GRADO 1/Imagenes Satelitales/Bases Datos Imagenes/LUCAS/Sweden_Extracted_Features.csv')
 
 
