@@ -80,13 +80,13 @@ X_train_scaled = scaler.fit_transform(X_train)
 # note that the test set using the fitted scaler in train dataset to transform in the test set
 X_test_scaled = scaler.transform(X_test)
 
-
+'''
 estimators = [ 80, 250, 1200 ]
 mean_rfrs = []
 std_rfrs_upper = []
 std_rfrs_lower = []
 
-np.random.seed(11111)
+np.random.seed(500)
 
 for i in estimators:
     model = rfr(n_estimators=i, max_depth = None)
@@ -98,7 +98,7 @@ for i in estimators:
     mean_rfrs.append(scores_rfr.mean())
     std_rfrs_upper.append(scores_rfr.mean()+scores_rfr.std()*2) # for error plotting
     std_rfrs_lower.append(scores_rfr.mean()-scores_rfr.std()*2) # for error plotting
-
+'''
 
 '''
 # -------------Random Forest Regressor con optimizacion de hiperparametros por Grid Search
@@ -108,13 +108,17 @@ for i in estimators:
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
+
+rf = RandomForestRegressor(random_state = 42)
+from pprint import pprint
+
 '''
 # Number of trees in random forest
 n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
 # Number of features to consider at every split
 max_features = ['auto', 'sqrt']
 # Maximum number of levels in tree
-max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+max_depth = [int(x) for x in np.linspace(50, 250, num = 11)]
 max_depth.append(None)
 # Minimum number of samples required to split a node
 min_samples_split = [2, 5, 10]
@@ -129,17 +133,19 @@ random_grid = {'n_estimators': n_estimators,
                'min_samples_split': min_samples_split,
                'min_samples_leaf': min_samples_leaf,
                'bootstrap': bootstrap}
+pprint(random_grid)
 
 # Use the random grid to search for best hyperparameters
 # First create the base model to tune
 rf = RandomForestRegressor()
 # Random search of parameters, using 3 fold cross validation, 
 # search across 100 different combinations, and use all available cores
-rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter = 100, cv = 3, verbose=2, random_state=42, n_jobs = -1)
+rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter = 100,
+                               cv = 3, verbose=2, random_state=42, n_jobs = -1)
 
 # Fit the random search model
 rf_random.fit(X_train_scaled, y_train)
-
+rf_random.best_params
 print(rf_random.best_params_)
 '''
 
@@ -153,16 +159,19 @@ def evaluate(model, test_features, test_labels):
     print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
     print('Accuracy = {:0.2f}%.'.format(accuracy))    
     return accuracy
-
+'''
 base_model = RandomForestRegressor(n_estimators = 10, random_state = 42)
 base_model.fit(X_train_scaled, y_train)
 base_accuracy = evaluate(base_model, X_test_scaled, y_test)
+print(base_accuracy)
 
+best_random = rf_random.best_estimator_
+random_accuracy = evaluate(best_random, X_test_scaled, y_test)
+print(random_accuracy)
 
-#best_random = rf_random.best_estimator_
-#random_accuracy = evaluate(best_random, X_test_scaled, y_test)
-
-#print('Improvement of {:0.2f}%.'.format( 100 * (random_accuracy - base_accuracy) / base_accuracy))
+print('Improvement of {:0.2f}%.'.format( 100 * (random_accuracy - base_accuracy) / base_accuracy))
+'''
+ 
 
 # ----Se monta Metodo de cross validacion y grid searh con valores cercanos a los mejores obtenidos
 
@@ -177,28 +186,31 @@ param_grid = {
     'n_estimators': [100, 200, 300, 1000]
 }
 '''
+
 # Create the parameter grid based on the results of random search for pH LUCAS
 param_grid = {
     'bootstrap': [True],
-    'max_depth': [40, 80, 90, 100],
+    'max_depth': [100, 110, 120, 150],
     'max_features': ['sqrt'],
     'min_samples_leaf': [1, 2, 3 ],
-    'min_samples_split': [2, 4, 5, 7, 9],
-    'n_estimators': [800, 1200, 1400, 1500]
+    'min_samples_split': [2, 3, 4],
+    'n_estimators': [850, 950, 1000, 1050, 1100]
 }
 # Create a based model
 rf = RandomForestRegressor()
+
 # Instantiate the grid search model
 grid_search = GridSearchCV(estimator = rf, param_grid = param_grid, cv = 5, n_jobs = -1, verbose = 2)
 
 # Fit the grid search to the data
 grid_search.fit(X_train_scaled, y_train)
+grid_search.best_params_
 print('los mejores parametros son: ', grid_search.best_params_)
 
 best_grid = grid_search.best_estimator_
 grid_accuracy = evaluate(best_grid, X_test_scaled, y_test)
 
-print('Improvement of {:0.2f}%.'.format( 100 * (grid_accuracy - base_accuracy) / base_accuracy))
+#print('Improvement of {:0.2f}%.'.format( 100 * (grid_accuracy - base_accuracy) / base_accuracy))
 
 from sklearn.metrics import r2_score, mean_squared_error
 
@@ -222,12 +234,7 @@ X_train_scaled = scaler.fit_transform(features_x)
 X_test_scaled = scaler.transform(X_test)
 '''
 
-'''
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-# note that the test set using the fitted scaler in train dataset to transform in the test set
-X_test_scaled = scaler.transform(X_test)
-'''
+
 '''
 import pandas pd
 from sklearn.preprocessing import StandardScaler
